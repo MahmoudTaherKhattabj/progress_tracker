@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="./logo.ico">
+  <title>Progress Tracker with Task Management - Monthly </title>
+  <style>
+    img {
+      display: table;
+      margin: 0 auto;
+      border-radius: 20%;
+      width: 200px;
+      max-width: 200px;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f9;
+    }
+
+    h1,
+    h2,
+    h3 {
+      text-align: center;
+    }
+
+    .countdown {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .countdown span {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .task-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      color: #fff;
+    }
+
+    .task input[type="text"] {
+      flex: 1;
+      margin-right: 10px;
+      padding: 5px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .task-progress {
+      display: flex;
+      align-items: center;
+    }
+
+    .task-slider {
+      margin-right: 10px;
+    }
+
+    .progress-circle {
+      width: 60px;
+      height: 60px;
+      background: conic-gradient(#4caf50 var(--progress, 0), #ddd var(--progress, 0));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .overall-progress {
+      margin: 20px auto;
+      width: 120px;
+      height: 120px;
+      background: conic-gradient(#2196f3 var(--progress, 0), #ddd var(--progress, 0));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .date-picker {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .date-picker input {
+      padding: 5px;
+    }
+
+    button {
+      margin: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <img src="./logo.png" alt="Mahmoud Taher Logo" title="Mahmoud Taher Logo">
+  <a href="./work daily tasks.html" title="Daily">[Go To Daily]</a>
+  <h1>Progress Tracker - Monthly</h1>
+
+  <div class="date-picker">
+    <div>
+      <label for="startDateInput">Start Date:</label>
+      <input type="date" id="startDateInput" />
+    </div>
+    <div>
+      <label for="endDateInput">End Date:</label>
+      <input type="date" id="endDateInput" />
+    </div>
+  </div>
+
+  <div class="countdown">
+    <h2>Countdown</h2>
+    <p>Days Left: <span id="daysLeft">Set dates above</span></p>
+  </div>
+
+  <h2>Overall Progress</h2>
+  <div id="overallProgress" class="overall-progress">0%</div>
+
+  <div class="task-container">
+    <div id="taskList"></div>
+    <div class="task">
+      <input type="text" id="newTask" placeholder="Enter a task" />
+      <select id="difficulty">
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="professional">Professional</option>
+        <option value="complex">Complex</option>
+        <option value="need_developement">need developement</option>
+      </select>
+      <button onclick="addTask()">Add Task</button>
+      <button onclick="removeAllTasks()">Remove All</button>
+    </div>
+  </div>
+
+  <script>
+    const taskList = document.getElementById("taskList");
+    const overallProgress = document.getElementById("overallProgress");
+    const daysLeft = document.getElementById("daysLeft");
+    const startDateInput = document.getElementById("startDateInput");
+    const endDateInput = document.getElementById("endDateInput");
+
+    let startDate = null;
+    let endDate = null;
+
+    // Difficulty Levels
+    const difficultyColors = {
+      beginner: "#d4edda",
+      intermediate: "#cce5ff",
+      advanced: "#fff3cd",
+      professional: "#f8d7da",
+      complex: "#d1ecf1",
+      need_developement: "salmon"
+    };
+
+    // Tasks array
+    const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    // Save tasks
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+    // حفظ التواريخ عند التغيير
+    startDateInput.addEventListener("change", (e) => {
+      startDate = new Date(e.target.value);
+      localStorage.setItem("startDate", e.target.value); // حفظ تاريخ البداية
+      updateCountdown();
+    });
+
+    endDateInput.addEventListener("change", (e) => {
+      endDate = new Date(e.target.value);
+      localStorage.setItem("endDate", e.target.value); // حفظ تاريخ النهاية
+      updateCountdown();
+    });
+
+    // استعادة التواريخ عند تحميل الصفحة
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedStartDate = localStorage.getItem("startDate");
+      const savedEndDate = localStorage.getItem("endDate");
+
+      if (savedStartDate) {
+        startDateInput.value = savedStartDate;
+        startDate = new Date(savedStartDate);
+      }
+
+      if (savedEndDate) {
+        endDateInput.value = savedEndDate;
+        endDate = new Date(savedEndDate);
+      }
+
+      updateCountdown();
+    });
+
+    // Update Countdown
+    function updateCountdown() {
+      if (!startDate || !endDate) return;
+
+      const today = new Date();
+      const timeDifference = endDate - today;
+      const daysRemaining = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+
+      daysLeft.textContent = daysRemaining >= 0 ? daysRemaining : "Time's up!";
+    }
+
+    // Event listeners for date inputs
+    startDateInput.addEventListener("change", (e) => {
+      startDate = new Date(e.target.value);
+      updateCountdown();
+    });
+
+    endDateInput.addEventListener("change", (e) => {
+      endDate = new Date(e.target.value);
+      updateCountdown();
+    });
+
+    // Update Overall Progress
+    function updateOverallProgress() {
+      const totalProgress = tasks.reduce((sum, task) => sum + parseInt(task.progress, 10), 0);
+      const overall = tasks.length ? Math.round(totalProgress / tasks.length) : 0;
+      overallProgress.style.setProperty("--progress", `${overall}%`);
+      overallProgress.textContent = `${overall}%`;
+    }
+
+    // Render Tasks
+    function renderTasks() {
+      taskList.innerHTML = "";
+      tasks.forEach((task, index) => {
+        const taskDiv = document.createElement("div");
+        taskDiv.className = "task";
+        taskDiv.style.backgroundColor = difficultyColors[task.difficulty];
+
+        const taskInput = document.createElement("input");
+        taskInput.type = "text";
+        taskInput.value = task.name;
+        taskInput.oninput = () => {
+          task.name = taskInput.value;
+          saveTasks();
+        };
+
+        const progressContainer = document.createElement("div");
+        progressContainer.className = "task-progress";
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.className = "task-slider";
+        slider.min = 0;
+        slider.max = 100;
+        slider.value = task.progress;
+        slider.oninput = () => {
+          task.progress = slider.value;
+          circle.style.setProperty("--progress", `${slider.value}%`);
+          circle.textContent = `${slider.value}%`;
+          saveTasks();
+          updateOverallProgress();
+        };
+
+        const circle = document.createElement("div");
+        circle.className = "progress-circle";
+        circle.style.setProperty("--progress", `${task.progress}%`);
+        circle.textContent = `${task.progress}%`;
+
+        const removeButton = document.createElement("button");
+        removeButton.textContent = "Remove";
+        removeButton.onclick = () => {
+          tasks.splice(index, 1);
+          saveTasks();
+          renderTasks();
+        };
+
+        progressContainer.appendChild(slider);
+        progressContainer.appendChild(circle);
+
+        taskDiv.appendChild(taskInput);
+        taskDiv.appendChild(progressContainer);
+        taskDiv.appendChild(removeButton);
+
+        taskList.appendChild(taskDiv);
+      });
+
+      updateOverallProgress();
+    }
+
+    // Add a New Task
+    function addTask() {
+      const newTaskInput = document.getElementById("newTask");
+      const difficultySelect = document.getElementById("difficulty");
+      const taskName = newTaskInput.value.trim();
+      if (taskName) {
+        tasks.push({ name: taskName, progress: 0, difficulty: difficultySelect.value });
+        saveTasks();
+        renderTasks();
+        newTaskInput.value = "";
+      }
+    }
+
+    // Remove All Tasks
+    function removeAllTasks() {
+      tasks.length = 0;
+      saveTasks();
+      renderTasks();
+    }
+
+    // Initial Render
+    renderTasks();
+  </script>
+</body>
+
+</html>
